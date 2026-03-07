@@ -1,0 +1,30 @@
+[package]
+name = "twit-rank"
+version = "0.2.0"
+edition = "2021"
+default-run = "twit-rank"
+
+[dependencies]
+anyhow = "1.0.102"
+pico-args = "0.5.0"
+tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread", "time"] }
+serde = { version = "1.0.228", features = ["derive"] }
+soml = { version = "0.2.0", default-features = false, features = ["std", "strict"] }
+serde_json = "1.0.149"
+regex = { version = "1.12.2", default-features = false, features = ["std", "unicode"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", default-features = false, features = ["fmt", "std"] }
+rusqlite = { version = "0.38.0", features = ["bundled"] }
+axum = { version = "0.8.8", default-features = false, features = ["http1", "json", "query", "tokio"] }
+tower-http = { version = "0.6.8", default-features = false, features = ["cors"] }
+html-escape = "0.2.13"
+reqwest = { version = "0.13.2", default-features = false, features = ["native-tls", "gzip"] }
+base64 = "0.22.1"
+fastrand = "2.3.0"
+rust-embed = "8.11.0"
+sha2 = "0.10.9"
+time = { version = "0.3.44", default-features = false, features = ["formatting", "macros", "parsing", "std"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

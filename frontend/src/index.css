@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Tweet content styles */
+.tweet-content {
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.tweet-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  margin-top: 12px;
+}
+
+.tweet-content video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  margin-top: 12px;
+}
+
+.tweet-content a {
+  color: rgb(29, 155, 240);
+  text-decoration: none;
+}
+
+.tweet-content a:hover {
+  text-decoration: underline;
+}
+
+.tweet-content blockquote {
+  border-left: 3px solid rgb(207, 217, 222);
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: rgb(247, 249, 249);
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tweet-content blockquote {
+    border-left-color: rgb(56, 68, 77);
+    background: rgb(22, 24, 28);
+  }
+}
+
+.tweet-content p {
+  margin: 0 0 0.5em 0;
+}
+
+.tweet-content p:last-child {
+  margin-bottom: 0;
+}

@@ -1,0 +1,15 @@
+archive_path = "state/archive.sqlite"
+list_ids = [
+  "123456789012345678:example-list",
+]
+poll_mins = 15
+max_pages = 20
+page_delay_ms = 2000
+feed_delay_ms = 30000
+tid_disable = false
+tid_pairs_url = "https://raw.githubusercontent.com/fa0311/x-client-transaction-id-pair-dict/refs/heads/main/pair.json"
+
+[[sessions]]
+username = "your_handle"
+auth_token = "paste_auth_token_here"
+ct0 = "paste_ct0_here"

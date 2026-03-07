@@ -1,0 +1,30 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Data & DB
+state/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Secrets & Sessions
+**/*.env
+config.toml
+settings.toml
+
+# Logs
+*.log
+
+# Caches & IDE
+.agent/
+.cache/
+.claude/
+.gemini/
+.idea/
+.vscode/
+
+# Build artifacts
+frontend/dist/
+frontend/node_modules/
