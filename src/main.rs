@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use anyhow::{bail, Context, Result};
 use pico_args::Arguments;
+use tokio::task::JoinHandle;
 use tracing::{info, Level};
 
 use twit_rank::archive_writer::ArchiveWriter;
@@ -155,7 +156,16 @@ async fn main() -> Result<()> {
 
     let cmd = args.command.unwrap_or(Command::Run { once: false });
     match cmd {
-        Command::Serve => web::serve(args.bind, cfg, settings_path, x, writer, cache).await,
+        Command::Serve => {
+            tokio::select! {
+                res = web::serve(args.bind, cfg, settings_path, x, writer, cache) => res,
+                res = wait_for_ctrl_c() => {
+                    res?;
+                    tracing::info!(message = graceful_shutdown_line(), "shutdown requested, stopping web ui");
+                    Ok(())
+                }
+            }
+        }
         Command::Archive { once } => {
             if !cfg.has_sessions() {
                 bail!(
@@ -164,24 +174,47 @@ async fn main() -> Result<()> {
                 );
             }
             let arch_cfg = archiver_config_from_cfg(&cfg);
-            archiver::run_loop(x, writer, arch_cfg, once).await
+            tokio::select! {
+                res = archiver::run_loop(x, writer, arch_cfg, once) => res,
+                res = wait_for_ctrl_c() => {
+                    res?;
+                    tracing::info!(message = graceful_shutdown_line(), "shutdown requested, stopping archiver");
+                    Ok(())
+                }
+            }
         }
         Command::Run { once } => {
+            let mut archiver_task: Option<JoinHandle<()>> = None;
             if cfg.has_sessions() {
                 let arch_cfg = archiver_config_from_cfg(&cfg);
                 let x2 = x.clone();
                 let w2 = writer.clone();
-                tokio::spawn(async move {
+                archiver_task = Some(tokio::spawn(async move {
                     if let Err(e) = archiver::run_loop(x2, w2, arch_cfg, once).await {
                         tracing::error!("archiver exited with error: {}", e);
                     }
-                });
+                }));
             } else {
                 tracing::warn!(
                     "no X sessions configured; starting web UI only so setup can be completed"
                 );
             }
-            web::serve(args.bind, cfg, settings_path, x, writer, cache).await
+
+            let result = tokio::select! {
+                res = web::serve(args.bind, cfg, settings_path, x, writer, cache) => res,
+                res = wait_for_ctrl_c() => {
+                    res?;
+                    tracing::info!(message = graceful_shutdown_line(), "shutdown requested, stopping web ui and archiver");
+                    Ok(())
+                }
+            };
+
+            if let Some(handle) = archiver_task {
+                handle.abort();
+                let _ = handle.await;
+            }
+
+            result
         }
     }
 }
@@ -193,6 +226,23 @@ fn log_startup_step(step: &str, step_started: Instant, startup_started: Instant)
         total_ms = startup_started.elapsed().as_millis() as u64,
         "startup step complete"
     );
+}
+
+async fn wait_for_ctrl_c() -> Result<()> {
+    tokio::signal::ctrl_c()
+        .await
+        .context("wait for Ctrl+C shutdown signal")
+}
+
+fn graceful_shutdown_line() -> &'static str {
+    const LINES: &[&str] = &[
+        "Enough scrolling for one session.",
+        "Archive closed. Go look at something farther away than a screen.",
+        "That is enough timeline for today.",
+        "Packets at rest. Touch grass if available.",
+        "The feed can wait.",
+    ];
+    LINES[fastrand::usize(..LINES.len())]
 }
 
 fn spawn_startup_maintenance(
