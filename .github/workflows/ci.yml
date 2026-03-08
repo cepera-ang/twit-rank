@@ -39,13 +39,21 @@ jobs:
         run: npm run build
 
       - name: Check formatting
+        env:
+          TWIT_RANK_SKIP_FRONTEND_BUILD: 1
         run: cargo fmt --all -- --check
 
       - name: Cargo check
+        env:
+          TWIT_RANK_SKIP_FRONTEND_BUILD: 1
         run: cargo check
 
       - name: Clippy
+        env:
+          TWIT_RANK_SKIP_FRONTEND_BUILD: 1
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Test
+        env:
+          TWIT_RANK_SKIP_FRONTEND_BUILD: 1
         run: cargo test
