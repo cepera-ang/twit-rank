@@ -72,12 +72,7 @@ fn build_tetris_if_stale() -> bool {
     }
 
     ensure_trunk_available();
-    run_trunk(&[
-        "build",
-        "--release",
-        "--dist",
-        "../frontend/public/tetris",
-    ]);
+    run_trunk(&["build", "--release", "--dist", "../frontend/public/tetris"]);
     true
 }
 
@@ -124,11 +119,9 @@ fn frontend_input_paths() -> Vec<PathBuf> {
         "frontend/index.html".into(),
     ];
     collect_tree_files(Path::new("frontend/src"), &mut paths);
-    collect_tree_files_filtered(
-        Path::new("frontend/public"),
-        &mut paths,
-        &|path| !path.starts_with(Path::new("frontend/public/tetris")),
-    );
+    collect_tree_files_filtered(Path::new("frontend/public"), &mut paths, &|path| {
+        !path.starts_with(Path::new("frontend/public/tetris"))
+    });
     paths
 }
 
@@ -169,7 +162,7 @@ fn run_trunk(args: &[&str]) {
         &[("TRUNK_BUILD_NO_COLOR", "false"), ("NO_COLOR", "false")],
         &["trunk"],
     )
-        .unwrap_or_else(|e| panic!("failed to run trunk {:?}: {}", args, e));
+    .unwrap_or_else(|e| panic!("failed to run trunk {:?}: {}", args, e));
     if !status.success() {
         panic!("trunk {:?} failed in tetris-egui/", args);
     }
