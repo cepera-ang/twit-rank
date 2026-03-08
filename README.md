@@ -42,6 +42,19 @@ The current product is primarily an archiver plus search interface. The ranking 
 
 ## Quick start
 
+Prerequisites:
+- Rust stable toolchain
+- Node.js and npm
+- `trunk` for the embedded Tetris wasm build
+- `wasm32-unknown-unknown` Rust target for the embedded Tetris wasm build
+
+Install the extra frontend/wasm tools once:
+
+```bash
+cargo install trunk
+rustup target add wasm32-unknown-unknown
+```
+
 ### Option 1: use the setup page
 
 1. Start the app:
@@ -216,6 +229,13 @@ npm run lint
 npm run build
 ```
 
+If you change frontend/wasm dependencies or delete generated Tetris assets, make sure the wasm toolchain is installed locally too:
+
+```bash
+cargo install trunk
+rustup target add wasm32-unknown-unknown
+```
+
 To skip the automatic frontend build inside Cargo:
 
 ```bash
@@ -234,6 +254,7 @@ TWIT_RANK_SKIP_FRONTEND_BUILD=1 cargo run
 - Native CI is defined for Ubuntu LTS, macOS, and Windows in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 - Local cross-checking from Windows to Linux/macOS is limited by missing target C toolchains for bundled SQLite and native TLS.
 - The frontend build requires Node.js and npm on every platform because the Rust build embeds `frontend/dist`.
+- The embedded Tetris mini-game also requires `trunk` and the `wasm32-unknown-unknown` Rust target when the wasm assets need to be rebuilt.
 
 ## License
 
