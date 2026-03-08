@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchFeeds, fetchSettingsStatus } from './api';
 import { Feed } from './components/Feed';
 import { SearchControls } from './components/SearchControls';
@@ -82,6 +82,76 @@ function SetupNotice({ onOpenSetup }: { onOpenSetup: () => void }) {
   );
 }
 
+function TetrisWindow({ onClose }: { onClose: () => void }) {
+  const width = 440;
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
+  const [position, setPosition] = useState(() => ({
+    x: Math.max(16, Math.round((window.innerWidth - width) / 2)),
+    y: Math.max(16, Math.round((window.innerHeight - window.innerHeight * 0.78) / 2)),
+  }));
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!dragOffset.current) return;
+      const height = Math.round(window.innerHeight * 0.78);
+      const nextX = event.clientX - dragOffset.current.x;
+      const nextY = event.clientY - dragOffset.current.y;
+      setPosition({
+        x: Math.max(16, Math.min(window.innerWidth - width - 16, nextX)),
+        y: Math.max(16, Math.min(window.innerHeight - height - 16, nextY)),
+      });
+    };
+
+    const handlePointerUp = () => {
+      dragOffset.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, []);
+
+  const beginDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    dragOffset.current = {
+      x: event.clientX - position.x,
+      y: event.clientY - position.y,
+    };
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+      <div
+        className="absolute flex h-[78vh] w-full max-w-[440px] flex-col overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950"
+        style={{ left: position.x, top: position.y }}
+      >
+        <div
+          onPointerDown={beginDrag}
+          className="flex cursor-move items-center justify-between border-b border-gray-200 px-4 py-3 select-none dark:border-gray-800"
+        >
+          <div>
+            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">Arcade</div>
+            <div className="text-lg font-bold">Tiny Tetris</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-gray-300 px-3 py-1 text-sm font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-900"
+          >
+            Close
+          </button>
+        </div>
+        <iframe
+          title="Tiny Tetris"
+          src="/tetris/index.html"
+          className="h-full w-full bg-slate-950"
+        />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const initial = useMemo(() => parseUrlState(), []);
   const [mode, setMode] = useState<AppMode>(initial.mode);
@@ -89,6 +159,7 @@ function App() {
   const [submittedSearch, setSubmittedSearch] = useState<SearchRequest>({ ...DEFAULT_SEARCH, ...initial.search });
   const [feeds, setFeeds] = useState<string[]>([]);
   const [settingsStatus, setSettingsStatus] = useState<SettingsStatus | null>(null);
+  const [showTetris, setShowTetris] = useState(false);
 
   useEffect(() => {
     fetchFeeds().then(setFeeds).catch((err) => console.error('Failed to load feeds', err));
@@ -149,7 +220,7 @@ function App() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <div className="flex justify-center">
-        <Sidebar mode={mode} onModeChange={setMode} />
+        <Sidebar mode={mode} onModeChange={setMode} onOpenTetris={() => setShowTetris(true)} />
         {mode === 'search' ? (
           <SearchFeed
             draft={searchDraft}
@@ -164,6 +235,7 @@ function App() {
         )}
         {rightRail}
       </div>
+      {showTetris ? <TetrisWindow onClose={() => setShowTetris(false)} /> : null}
     </div>
   );
 }

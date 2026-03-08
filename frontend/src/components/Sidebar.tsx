@@ -26,9 +26,10 @@ function NavItem({ icon, label, active, onClick }: NavItemProps) {
 interface SidebarProps {
   mode: 'home' | 'search' | 'setup';
   onModeChange: (mode: 'home' | 'search' | 'setup') => void;
+  onOpenTetris: () => void;
 }
 
-export function Sidebar({ mode, onModeChange }: SidebarProps) {
+export function Sidebar({ mode, onModeChange, onOpenTetris }: SidebarProps) {
   const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(null);
   const clientBuildId = useMemo(() => import.meta.env.VITE_TWIT_RANK_BUILD_ID ?? 'dev', []);
   const shortClientBuild =
@@ -85,6 +86,15 @@ export function Sidebar({ mode, onModeChange }: SidebarProps) {
             </svg>
           }
           label="Setup"
+        />
+        <NavItem
+          onClick={onOpenTetris}
+          icon={
+            <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-7 h-7">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6v6H4zM14 6h6v6h-6zM9 12h6v6H9zM4 18h6v2H4zM14 18h6v2h-6z" />
+            </svg>
+          }
+          label="Tetris"
         />
       </nav>
 

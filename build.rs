@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -23,7 +23,8 @@ fn main() {
         return;
     }
 
-    if !frontend_build_is_stale() {
+    let tetris_rebuilt = build_tetris_if_stale();
+    if !tetris_rebuilt && !frontend_build_is_stale() {
         println!("cargo:warning=Reusing existing frontend/dist build");
         return;
     }
@@ -64,6 +65,37 @@ fn ensure_npm_available() {
     }
 }
 
+fn build_tetris_if_stale() -> bool {
+    let output = Path::new("frontend/public/tetris/index.html");
+    if !tetris_build_is_stale(output) {
+        return false;
+    }
+
+    ensure_trunk_available();
+    run_trunk(&[
+        "build",
+        "--release",
+        "--dist",
+        "../frontend/public/tetris",
+    ]);
+    true
+}
+
+fn tetris_build_is_stale(output: &Path) -> bool {
+    if !output.exists() {
+        return true;
+    }
+
+    let output_mtime = match modified_time(output) {
+        Some(mtime) => mtime,
+        None => return true,
+    };
+
+    tetris_input_paths()
+        .into_iter()
+        .any(|path| modified_time(&path).is_none_or(|mtime| mtime > output_mtime))
+}
+
 fn frontend_build_is_stale() -> bool {
     let index_html = Path::new("frontend/dist/index.html");
     if !index_html.exists() {
@@ -81,7 +113,7 @@ fn frontend_build_is_stale() -> bool {
         .any(|path| modified_time(&path).is_none_or(|mtime| mtime > dist_mtime))
 }
 
-fn frontend_input_paths() -> Vec<std::path::PathBuf> {
+fn frontend_input_paths() -> Vec<PathBuf> {
     let mut paths = vec![
         "frontend/package.json".into(),
         "frontend/package-lock.json".into(),
@@ -92,7 +124,21 @@ fn frontend_input_paths() -> Vec<std::path::PathBuf> {
         "frontend/index.html".into(),
     ];
     collect_tree_files(Path::new("frontend/src"), &mut paths);
-    collect_tree_files(Path::new("frontend/public"), &mut paths);
+    collect_tree_files_filtered(
+        Path::new("frontend/public"),
+        &mut paths,
+        &|path| !path.starts_with(Path::new("frontend/public/tetris")),
+    );
+    paths
+}
+
+fn tetris_input_paths() -> Vec<PathBuf> {
+    let mut paths = vec![
+        "tetris-egui/Cargo.toml".into(),
+        "tetris-egui/Trunk.toml".into(),
+        "tetris-egui/index.html".into(),
+    ];
+    collect_tree_files(Path::new("tetris-egui/src"), &mut paths);
     paths
 }
 
@@ -108,6 +154,27 @@ fn run_npm(args: &[&str], extra_env: &[(&str, &str)]) {
     }
 }
 
+fn ensure_trunk_available() {
+    let status = tool_status(&["--version"], None, &[], &["trunk"])
+        .unwrap_or_else(|e| panic!("failed to run trunk --version: {e}. Install trunk first."));
+    if !status.success() {
+        panic!("trunk --version failed; install trunk first.");
+    }
+}
+
+fn run_trunk(args: &[&str]) {
+    let status = tool_status(
+        args,
+        Some("tetris-egui"),
+        &[("TRUNK_BUILD_NO_COLOR", "false"), ("NO_COLOR", "false")],
+        &["trunk"],
+    )
+        .unwrap_or_else(|e| panic!("failed to run trunk {:?}: {}", args, e));
+    if !status.success() {
+        panic!("trunk {:?} failed in tetris-egui/", args);
+    }
+}
+
 fn npm_status(
     args: &[&str],
     current_dir: Option<&str>,
@@ -117,7 +184,15 @@ fn npm_status(
     if cfg!(windows) {
         programs.push("npm.cmd");
     }
+    tool_status(args, current_dir, extra_env, &programs)
+}
 
+fn tool_status(
+    args: &[&str],
+    current_dir: Option<&str>,
+    extra_env: &[(&str, &str)],
+    programs: &[&str],
+) -> io::Result<std::process::ExitStatus> {
     let mut last_not_found: Option<io::Error> = None;
     for program in programs {
         let mut cmd = Command::new(program);
@@ -150,14 +225,28 @@ fn print_frontend_rerun_hints() {
     for path in frontend_input_paths() {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
     }
+    for path in tetris_input_paths() {
+        println!("cargo:rerun-if-changed={}", path.to_string_lossy());
+    }
 }
 
 fn collect_tree_files(root: &Path, out: &mut Vec<std::path::PathBuf>) {
+    collect_tree_files_filtered(root, out, &|_| true);
+}
+
+fn collect_tree_files_filtered(
+    root: &Path,
+    out: &mut Vec<std::path::PathBuf>,
+    include: &dyn Fn(&Path) -> bool,
+) {
     if !root.exists() {
         return;
     }
     let mut stack = vec![root.to_path_buf()];
     while let Some(path) = stack.pop() {
+        if !include(&path) {
+            continue;
+        }
         if path.is_dir() {
             let entries = fs::read_dir(&path).unwrap_or_else(|e| {
                 panic!("failed to read frontend path {}: {}", path.display(), e)

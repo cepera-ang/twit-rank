@@ -1,0 +1,14 @@
+[package]
+name = "tetris-egui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow"] }
+egui = "0.31.1"
+fastrand = "2.3.0"
+js-sys = "0.3.77"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+web-sys = { version = "0.3.77", features = ["Window", "Document", "HtmlCanvasElement"] }
+console_error_panic_hook = "0.1.7"

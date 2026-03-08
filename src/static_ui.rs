@@ -89,6 +89,7 @@ fn content_type(path: &str) -> &'static str {
         Some("txt") => "text/plain; charset=utf-8",
         Some("ttf") => "font/ttf",
         Some("webp") => "image/webp",
+        Some("wasm") => "application/wasm",
         Some("woff") => "font/woff",
         Some("woff2") => "font/woff2",
         _ => "application/octet-stream",
